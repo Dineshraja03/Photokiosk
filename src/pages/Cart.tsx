@@ -5,12 +5,22 @@ import { useNavigate } from "react-router-dom";
 const TAX_RATE = 0.0825;
 const SHIPPING = 5.99;
 
-function getItemPrice(item) {
+interface CartItem {
+  id: string;
+  name: string;
+  thumb: string;
+  editInfo?: string;
+  printSizes: { label: string; price: number }[];
+  selectedSize: string;
+  quantity: number;
+}
+
+function getItemPrice(item: CartItem) {
   const size = item.printSizes.find((s) => s.label === item.selectedSize);
   return size ? size.price * item.quantity : 0;
 }
 
-function formatDate(date) {
+function formatDate(date: Date) {
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
@@ -36,7 +46,15 @@ export default function Cart() {
     orderedSessions = Array.from(new Set([...orderedSessions, ...sessionIds]));
     localStorage.setItem("orderedSessions", JSON.stringify(orderedSessions));
     clearCart();
-    localStorage.setItem("currentUser", JSON.stringify({ role: "operator" }));
+    
+    // Show success message and redirect
+    alert(`Order #${orderNumber} placed successfully! Your photos will be ready for pickup in 5-7 business days.`);
+    
+    // Navigate back to counter staff dashboard
+    navigate("/");
+  };
+
+  const handleBackToDashboard = () => {
     navigate("/");
   };
 
@@ -46,7 +64,12 @@ export default function Cart() {
         <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200 text-center">
           <h1 className="text-2xl font-bold mb-2">Your cart is empty</h1>
           <p className="mb-4 text-gray-500">Go back and add some photos to your cart.</p>
-          <button className="text-blue-600 hover:underline text-sm" onClick={() => window.history.back()}>&larr; Back to Editor</button>
+          <button 
+            className="text-blue-600 hover:underline text-sm" 
+            onClick={handleBackToDashboard}
+          >
+            &larr; Back to Dashboard
+          </button>
         </div>
       </div>
     );
@@ -55,23 +78,36 @@ export default function Cart() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-2">
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl p-8 md:p-12 flex flex-col md:flex-row gap-10 md:gap-12 border border-gray-100">
+        {/* Header with back button */}
+        <div className="absolute top-4 left-4">
+          <button 
+            onClick={handleBackToDashboard}
+            className="text-gray-600 hover:text-gray-800 flex items-center gap-2"
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Dashboard
+          </button>
+        </div>
+
         {/* Left: Cart Items */}
         <div className="flex-1 min-w-0 flex flex-col">
           {/* Invoice Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-8 mt-8 md:mt-0">
             <div>
               <h1 className="text-3xl font-extrabold mb-1 tracking-tight text-gray-900">Photo Cart Invoice</h1>
               <div className="text-sm text-gray-500 font-medium">Order #{orderNumber} &middot; {formatDate(orderDate)}</div>
             </div>
           </div>
-          <h2 className="font-semibold text-lg mb-4 text-gray-800">Your Edited Photos</h2>
+          <h2 className="font-semibold text-lg mb-4 text-gray-800">Selected Photos ({cartItems.length})</h2>
           <div className="flex flex-col gap-6">
             {cartItems.map((item) => (
               <div key={item.id} className="flex flex-col sm:flex-row items-center gap-6 bg-gray-50 rounded-xl shadow-sm p-4 md:p-6">
                 <img src={item.thumb} alt={item.name} className="w-24 h-24 object-cover rounded-lg border shadow" />
                 <div className="flex-1 min-w-0 w-full">
                   <div className="font-semibold text-base text-gray-900 truncate mb-1">{item.name}</div>
-                  {item.editInfo && <div className="text-xs text-gray-500 mb-1">Edited: {item.editInfo}</div>}
+                  {item.editInfo && <div className="text-xs text-blue-600 mb-1 font-medium">✓ {item.editInfo}</div>}
                   <div className="flex flex-wrap items-center gap-3 mt-2">
                     <label className="text-xs font-medium">Print Size:</label>
                     <div className="relative">
@@ -79,9 +115,9 @@ export default function Cart() {
                         className="border rounded-lg px-3 py-2 text-xs shadow-sm focus:ring-2 focus:ring-blue-400 appearance-none pr-8 bg-white"
                         value={item.selectedSize}
                         onChange={e => updateCartItem(item.id, { selectedSize: e.target.value })}
-                        style={{ minWidth: 90 }}
+                        style={{ minWidth: 120 }}
                       >
-                        {item.printSizes.filter(s => s.label === "4x6" || s.label === "6x8").map((size) => (
+                        {item.printSizes.map((size) => (
                           <option key={size.label} value={size.label}>{size.label} - ${size.price.toFixed(2)}</option>
                         ))}
                       </select>
@@ -121,6 +157,7 @@ export default function Cart() {
             ))}
           </div>
         </div>
+        
         {/* Right: Order Summary */}
         <div className="w-full md:w-96 flex flex-col justify-center">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col gap-4 sticky top-10">
@@ -130,12 +167,13 @@ export default function Cart() {
             <div className="flex justify-between text-base text-gray-700"><span>Shipping</span><span>${cartItems.length > 0 ? SHIPPING.toFixed(2) : "0.00"}</span></div>
             <div className="border-t my-2"></div>
             <div className="flex justify-between font-bold text-2xl text-gray-900"><span>Total</span><span>${total.toFixed(2)}</span></div>
-            <button className="mt-4 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 rounded-xl text-lg shadow-lg transition-all duration-150 active:scale-95" onClick={handlePlaceOrder}>Place Order</button>
+            <button className="mt-4 w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 rounded-xl text-lg shadow-lg transition-all duration-150 active:scale-95" onClick={handlePlaceOrder}>Place Order</button>
             <div className="text-xs text-gray-500 text-center mt-2">Estimated delivery: 5-7 business days</div>
             <div className="text-xs text-gray-400 text-center mt-1">Invoice generated by PhotoKiosk Pro</div>
           </div>
         </div>
       </div>
+      
       {/* Delete Confirmation Dialog */}
       {deleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
@@ -151,4 +189,4 @@ export default function Cart() {
       )}
     </div>
   );
-} 
+}

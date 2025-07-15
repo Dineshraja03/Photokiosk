@@ -317,25 +317,37 @@ export function CounterStaffDashboard({ username }: CounterStaffDashboardProps) 
 
   // Fix the function name on line 306 - remove the space
   const handleProceedToCart = () => {
+    if (totalSelectedCount === 0) {
+      setShowCartWarningDialog(true);
+      return;
+    }
+
     // For each selected photo in each session, add to cart if not already present
     Object.entries(selectedPhotos).forEach(([sessionId, indices]) => {
       const session = sessions.find(s => s.id === sessionId);
       if (session) {
         indices.forEach(imageIndex => {
-          const item = {
+          const cartItem = {
             id: `${sessionId}-${imageIndex}`,
-            sessionId,
-            imageIndex,
-            imageUrl: session.images[imageIndex],
-            customerName: session.customerDetails.name,
-            sessionType: session.type,
-            price: 10, // Default price, you can adjust this
-            quantity: 1
+            name: `${session.customerDetails.name} - Photo ${imageIndex + 1}`,
+            thumb: session.images[imageIndex],
+            editInfo: session.editedImages && 
+              (session.editedImages instanceof Set 
+                ? session.editedImages.has(imageIndex)
+                : session.editedImages.includes(imageIndex)) ? "Edited" : "",
+            printSizes: [
+              { label: "4x6", price: 2.99 },
+              { label: "6x8", price: 4.99 },
+              { label: "8x10", price: 7.99 },
+              { label: "11x14", price: 12.99 }
+            ],
+            selectedSize: "4x6",
+            quantity: 1,
           };
           
           // Add to cart if not already present
-          if (!cartItems.some(cartItem => cartItem.id === item.id)) {
-            addToCart(item);
+          if (!cartItems.some(existingItem => existingItem.id === cartItem.id)) {
+            addToCart(cartItem);
           }
         });
       }
@@ -344,8 +356,8 @@ export function CounterStaffDashboard({ username }: CounterStaffDashboardProps) 
     // Clear selections after adding to cart
     setSelectedPhotos({});
     
-    // Navigate to cart or show success message
-    alert(`${totalSelectedCount} photos added to cart!`);
+    // Navigate to cart page
+    navigate('/cart');
   };
 
   // Enhanced save handler to properly update all states
@@ -412,7 +424,7 @@ export function CounterStaffDashboard({ username }: CounterStaffDashboardProps) 
     if (savedSessions) {
       try {
         const parsedSessions = JSON.parse(savedSessions);
-        // Convert editedImages array back to Set
+        // Convert editedImages array to Set
         const sessionsWithSets = parsedSessions.map((session: any) => ({
           ...session,
           editedImages: new Set(session.editedImages || [])
