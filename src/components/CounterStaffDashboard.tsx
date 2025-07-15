@@ -348,7 +348,6 @@ export function CounterStaffDashboard({ username }: CounterStaffDashboardProps) 
     alert(`${totalSelectedCount} photos added to cart!`);
   };
 
-<<<<<<< HEAD
   // Enhanced save handler to properly update all states
   const handleSaveEditedImage = (sessionId: string, imageIndex: number, editedImageUrl: string) => {
     try {
@@ -523,8 +522,6 @@ export function CounterStaffDashboard({ username }: CounterStaffDashboardProps) 
     }
   };
 
-=======
->>>>>>> fb73df7d6dad75844b84229bbbdd13e0aea7d448
   return (
     <div className="h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 flex flex-col overflow-hidden">
       {/* Top Header */}
